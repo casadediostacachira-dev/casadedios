@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lee la Biblia - Iglesia Tacachira</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0a0a0f; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; }
+
+        .bible-header {
+            background: linear-gradient(135deg, #14141c, #1c1c28);
+            padding: 20px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 2px solid rgba(212, 175, 55, 0.4); flex-wrap: wrap; gap: 15px;
+        }
+        .bible-header h1 { color: #d4af37; font-size: 1.5rem; letter-spacing: 1px; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #e0e0e0; text-decoration: none; font-size: 0.9rem;
+            padding: 8px 16px; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 30px; transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(212, 175, 55, 0.1); border-color: #d4af37; color: #d4af37; }
+
+        .bible-controls {
+            display: flex; gap: 15px; padding: 20px 30px;
+            background: #0f0f16; flex-wrap: wrap; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        .control-group label { font-size: 0.8rem; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; }
+        select {
+            background: #1a1a24; color: #fff; border: 1px solid rgba(212,175,55,0.3);
+            padding: 10px 15px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; outline: none; min-width: 180px;
+        }
+        select:focus { border-color: #d4af37; }
+
+        .bible-reader { flex: 1; max-width: 900px; margin: 0 auto; padding: 40px 30px; width: 100%; }
+        .chapter-title { color: #d4af37; font-size: 1.8rem; margin-bottom: 30px; text-align: center; border-bottom: 1px solid rgba(212,175,55,0.2); padding-bottom: 15px; }
+        .verse { display: flex; gap: 15px; margin-bottom: 18px; line-height: 1.8; font-size: 1.05rem; padding: 8px 12px; border-radius: 10px; transition: background 0.4s, border-color 0.4s; border-left: 3px solid transparent; scroll-margin-top: 100px; }
+        .verse.highlighted { background: rgba(212, 175, 55, 0.15); border-left-color: #d4af37; }
+        .verse-number { color: #d4af37; font-weight: 700; font-size: 0.9rem; min-width: 30px; text-align: right; padding-top: 3px; }
+        .verse-text { color: #d0d0d0; }
+        .loading { text-align: center; color: #d4af37; font-size: 1.2rem; padding: 50px; }
+        .error { text-align: center; color: #ff4d4d; padding: 50px; line-height: 1.8; }
+
+        .bible-pagination {
+            display: flex; justify-content: center; gap: 20px;
+            padding: 30px; background: #0f0f16; border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .page-btn {
+            padding: 12px 25px; background: rgba(212,175,55,0.1);
+            border: 1px solid rgba(212,175,55,0.3); color: #d4af37;
+            border-radius: 30px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .page-btn:hover:not(:disabled) { background: rgba(212,175,55,0.2); border-color: #d4af37; transform: translateY(-2px); }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* ===== MODAL FLOTANTE DEL VERSÍCULO ===== */
+        .verse-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        .verse-modal-overlay.active { display: flex; }
+
+        .verse-modal {
+            background: linear-gradient(145deg, #1a1a24, #12121a);
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            border-radius: 20px;
+            padding: 35px 30px 30px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(212, 175, 55, 0.2);
+            position: relative;
+            animation: popIn 0.3s ease;
+        }
+        .verse-modal-close {
+            position: absolute; top: 12px; right: 15px;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            background: rgba(212, 175, 55, 0.1);
+            color: #d4af37;
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+        .verse-modal-close:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+            transform: rotate(90deg);
+        }
+        .verse-modal-ref {
+            display: inline-block;
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #d4af37;
+            font-weight: 700;
+            padding: 6px 16px;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 50px;
+            margin-bottom: 20px;
+        }
+        .verse-modal-text {
+            font-size: 1.2rem;
+            line-height: 1.85;
+            color: #e8e8e8;
+            font-style: italic;
+            padding-left: 18px;
+            border-left: 3px solid #d4af37;
+            margin-bottom: 20px;
+        }
+        .verse-modal-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #666;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .verse-modal-footer span { color: #d4af37; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .bible-controls { flex-direction: column; align-items: stretch; }
+            .control-group { flex-direction: column; align-items: stretch; }
+            select { width: 100%; }
+            .verse { font-size: 0.95rem; gap: 10px; }
+            .verse-number { min-width: 22px; }
+            .verse-modal { padding: 30px 22px 25px; }
+            .verse-modal-text { font-size: 1.05rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="bible-header">
+        <h1>📖 Biblia - Iglesia Tacachira</h1>
+        <a href="radio.html" class="back-btn">← Seguir Escuchando</a>
+    </header>
+
+    <div class="bible-controls">
+        <div class="control-group">
+            <label>Libro:</label>
+            <select id="bookSelect"></select>
+        </div>
+        <div class="control-group">
+            <label>Capítulo:</label>
+            <select id="chapterSelect"></select>
+        </div>
+        <div class="control-group">
+            <label>Versículo:</label>
+            <select id="verseSelect"></select>
+        </div>
+    </div>
+
+    <main class="bible-reader" id="reader">
+        <div class="loading">Cargando la Palabra de Dios...</div>
+    </main>
+
+    <div class="bible-pagination">
+        <button class="page-btn" id="prevBtn" disabled>← Anterior</button>
+        <button class="page-btn" id="nextBtn" disabled>Siguiente →</button>
+    </div>
+
+    <!-- MODAL FLOTANTE DEL VERSÍCULO -->
+    <div class="verse-modal-overlay" id="verseModal">
+        <div class="verse-modal">
+            <button class="verse-modal-close" id="modalClose" title="Cerrar (Esc)">✕</button>
+            <div class="verse-modal-ref" id="modalRef">—</div>
+            <div class="verse-modal-text" id="modalText">—</div>
+            <div class="verse-modal-footer">Iglesia <span>Tacachira</span></div>
+        </div>
+    </div>
+
+    <script>
+        const JSON_PATH = 'data/biblia.json';
+
+        const BOOK_NAMES = {
+            'GEN': 'Génesis', 'EXO': 'Éxodo', 'LEV': 'Levítico', 'NUM': 'Números',
+            'DEU': 'Deuteronomio', 'JOS': 'Josué', 'JDG': 'Jueces', 'RUT': 'Rut',
+            '1SA': '1 Samuel', '2SA': '2 Samuel', '1KI': '1 Reyes', '2KI': '2 Reyes',
+            '1CH': '1 Crónicas', '2CH': '2 Crónicas', 'EZR': 'Esdras', 'NEH': 'Nehemías',
+            'EST': 'Ester', 'JOB': 'Job', 'PSA': 'Salmos', 'PRO': 'Proverbios',
+            'ECC': 'Eclesiastés', 'SNG': 'Cantares', 'ISA': 'Isaías', 'JER': 'Jeremías',
+            'LAM': 'Lamentaciones', 'EZK': 'Ezequiel', 'DAN': 'Daniel', 'HOS': 'Oseas',
+            'JOL': 'Joel', 'AMO': 'Amós', 'OBA': 'Obadías', 'JON': 'Jonás',
+            'MIC': 'Miqueas', 'NAM': 'Nahúm', 'HAB': 'Habacuc', 'ZEP': 'Sofonías',
+            'HAG': 'Hageo', 'ZEC': 'Zacarías', 'MAL': 'Malaquías',
+            'MAT': 'Mateo', 'MRK': 'Marcos', 'LUK': 'Lucas', 'JHN': 'Juan',
+            'ACT': 'Hechos', 'ROM': 'Romanos', '1CO': '1 Corintios', '2CO': '2 Corintios',
+            'GAL': 'Gálatas', 'EPH': 'Efesios', 'PHP': 'Filipenses', 'COL': 'Colosenses',
+            '1TH': '1 Tesalonicenses', '2TH': '2 Tesalonicenses', '1TI': '1 Timoteo',
+            '2TI': '2 Timoteo', 'TIT': 'Tito', 'PHM': 'Filemón', 'HEB': 'Hebreos',
+            'JAS': 'Santiago', '1PE': '1 Pedro', '2PE': '2 Pedro', '1JN': '1 Juan',
+            '2JN': '2 Juan', '3JN': '3 Juan', 'JUD': 'Judas', 'REV': 'Apocalipsis'
+        };
+
+        const BOOK_ORDER = [
+            'GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','1SA','2SA','1KI','2KI',
+            '1CH','2CH','EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER',
+            'LAM','EZK','DAN','HOS','JOL','AMO','OBA','JON','MIC','NAM','HAB','ZEP',
+            'HAG','ZEC','MAL','MAT','MRK','LUK','JHN','ACT','ROM','1CO','2CO','GAL',
+            'EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','JAS','1PE',
+            '2PE','1JN','2JN','3JN','JUD','REV'
+        ];
+
+        let bibleStructure = {};
+        let booksList = [];
+        let currentBook = '';
+        let currentChapter = '1';
+
+        const bookSelect = document.getElementById('bookSelect');
+        const chapterSelect = document.getElementById('chapterSelect');
+        const verseSelect = document.getElementById('verseSelect');
+        const reader = document.getElementById('reader');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Modal
+        const verseModal = document.getElementById('verseModal');
+        const modalRef = document.getElementById('modalRef');
+        const modalText = document.getElementById('modalText');
+        const modalClose = document.getElementById('modalClose');
+
+        function getBookName(code) {
+            return BOOK_NAMES[code.toUpperCase()] || code;
+        }
+
+        function sortBooks(codes) {
+            return codes.sort((a, b) => {
+                const ia = BOOK_ORDER.indexOf(a.toUpperCase());
+                const ib = BOOK_ORDER.indexOf(b.toUpperCase());
+                if (ia === -1 && ib === -1) return a.localeCompare(b);
+                if (ia === -1) return 1;
+                if (ib === -1) return -1;
+                return ia - ib;
+            });
+        }
+
+        function processVerses(versesArray) {
+            const structure = {};
+            versesArray.forEach(item => {
+                if (!item || !item.id || !item.text) return;
+                const idMatch = item.id.match(/^([A-Z0-9]{2,4})\./i);
+                if (!idMatch) return;
+                const bookCode = idMatch[1].toUpperCase();
+                const chapterNum = String(item.chapter);
+                const verseNum = String(item.verse_str);
+                if (!structure[bookCode]) structure[bookCode] = {};
+                if (!structure[bookCode][chapterNum]) structure[bookCode][chapterNum] = {};
+                structure[bookCode][chapterNum][verseNum] = item.text;
+            });
+            return structure;
+        }
+
+        async function loadBible() {
+            try {
+                reader.innerHTML = '<div class="loading">Cargando la Palabra de Dios...</div>';
+                const response = await fetch(JSON_PATH);
+                if (!response.ok) throw new Error('No se encontró ' + JSON_PATH);
+                const rawData = await response.json();
+
+                let versesArray = null;
+                if (Array.isArray(rawData.verses)) {
+                    versesArray = rawData.verses;
+                } else if (rawData.verses && typeof rawData.verses === 'object') {
+                    versesArray = Object.values(rawData.verses);
+                }
+
+                if (!versesArray || versesArray.length === 0) {
+                    reader.innerHTML = `<div class="error"><strong>No se encontró "verses" en el JSON.</strong></div>`;
+                    return;
+                }
+
+                bibleStructure = processVerses(versesArray);
+                booksList = sortBooks(Object.keys(bibleStructure));
+
+                if (booksList.length === 0) {
+                    reader.innerHTML = `<div class="error"><strong>No se detectaron libros.</strong></div>`;
+                    return;
+                }
+
+                bookSelect.innerHTML = '';
+                booksList.forEach(code => {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = getBookName(code);
+                    bookSelect.appendChild(opt);
+                });
+
+                currentBook = bibleStructure['MAT'] ? 'MAT' : booksList[0];
+                bookSelect.value = currentBook;
+                await loadChapters(currentBook);
+
+            } catch (error) {
+                console.error(error);
+                reader.innerHTML = `<div class="error"><strong>No se pudo cargar la Biblia.</strong><br>${error.message}</div>`;
+            }
+        }
+
+        async function loadChapters(bookCode) {
+            currentBook = bookCode;
+            const chapters = bibleStructure[bookCode] || {};
+            const chapterNums = Object.keys(chapters).sort((a, b) => parseInt(a) - parseInt(b));
+
+            chapterSelect.innerHTML = '';
+            if (chapterNums.length === 0) {
+                chapterSelect.innerHTML = '<option>Sin capítulos</option>';
+                return;
+            }
+
+            chapterNums.forEach(num => {
+                const opt = document.createElement('option');
+                opt.value = num;
+                opt.textContent = `Capítulo ${num}`;
+                chapterSelect.appendChild(opt);
+            });
+
+            currentChapter = chapterNums[0];
+            chapterSelect.value = currentChapter;
+            await loadChapterText();
+        }
+
+        async function loadChapterText() {
+            if (!currentBook || !currentChapter) return;
+            reader.innerHTML = '<div class="loading">Cargando capítulo...</div>';
+
+            const chapters = bibleStructure[currentBook] || {};
+            const verses = chapters[currentChapter] || {};
+            const verseNums = Object.keys(verses).sort((a, b) => parseInt(a) - parseInt(b));
+
+            verseSelect.innerHTML = '<option value="">— Ir a versículo —</option>';
+            verseNums.forEach(num => {
+                const opt = document.createElement('option');
+                opt.value = num;
+                opt.textContent = `Versículo ${num}`;
+                verseSelect.appendChild(opt);
+            });
+
+            let html = `<h2 class="chapter-title">${getBookName(currentBook)} ${currentChapter}</h2>`;
+
+            if (verseNums.length > 0) {
+                verseNums.forEach(num => {
+                    html += `<div class="verse" id="verse-${num}">
+                        <span class="verse-number">${num}</span>
+                        <span class="verse-text">${verses[num]}</span>
+                    </div>`;
+                });
+            } else {
+                html += `<div class="error">No se encontraron versículos en este capítulo.</div>`;
+            }
+
+            reader.innerHTML = html;
+            verseSelect.value = '';
+            updatePagination();
+        }
+
+        // ============================================
+        // MODAL FLOTANTE
+        // ============================================
+        function showVerseModal(verseNum) {
+            const chapters = bibleStructure[currentBook] || {};
+            const verses = chapters[currentChapter] || {};
+            const text = verses[verseNum];
+            if (!text) return;
+
+            const bookName = getBookName(currentBook);
+            modalRef.textContent = `${bookName} ${currentChapter}:${verseNum}`;
+            modalText.textContent = text;
+            verseModal.classList.add('active');
+
+            // Resaltar también el versículo en la lista
+            document.querySelectorAll('.verse.highlighted').forEach(el => el.classList.remove('highlighted'));
+            const target = document.getElementById(`verse-${verseNum}`);
+            if (target) {
+                target.classList.add('highlighted');
+                setTimeout(() => target.classList.remove('highlighted'), 3000);
+            }
+        }
+
+        function closeVerseModal() {
+            verseModal.classList.remove('active');
+        }
+
+        modalClose.addEventListener('click', closeVerseModal);
+
+        // Cerrar al hacer clic fuera del modal
+        verseModal.addEventListener('click', (e) => {
+            if (e.target === verseModal) closeVerseModal();
+        });
+
+        // Cerrar con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && verseModal.classList.contains('active')) {
+                closeVerseModal();
+            }
+        });
+
+        function updatePagination() {
+            const chapters = bibleStructure[currentBook] || {};
+            const chapterNums = Object.keys(chapters).sort((a, b) => parseInt(a) - parseInt(b));
+            const idx = chapterNums.indexOf(String(currentChapter));
+            prevBtn.disabled = (idx <= 0);
+            nextBtn.disabled = (idx >= chapterNums.length - 1);
+        }
+
+        // ============================================
+        // EVENTOS
+        // ============================================
+        bookSelect.addEventListener('change', e => loadChapters(e.target.value));
+        chapterSelect.addEventListener('change', e => {
+            currentChapter = e.target.value;
+            loadChapterText();
+        });
+        verseSelect.addEventListener('change', e => {
+            const verseNum = e.target.value;
+            if (verseNum) {
+                showVerseModal(verseNum);
+            }
+        });
+        prevBtn.addEventListener('click', () => {
+            const chapters = bibleStructure[currentBook] || {};
+            const chapterNums = Object.keys(chapters).sort((a, b) => parseInt(a) - parseInt(b));
+            const idx = chapterNums.indexOf(String(currentChapter));
+            if (idx > 0) {
+                currentChapter = chapterNums[idx - 1];
+                chapterSelect.value = currentChapter;
+                loadChapterText();
+            }
+        });
+        nextBtn.addEventListener('click', () => {
+            const chapters = bibleStructure[currentBook] || {};
+            const chapterNums = Object.keys(chapters).sort((a, b) => parseInt(a) - parseInt(b));
+            const idx = chapterNums.indexOf(String(currentChapter));
+            if (idx < chapterNums.length - 1) {
+                currentChapter = chapterNums[idx + 1];
+                chapterSelect.value = currentChapter;
+                loadChapterText();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadBible);
+    </script>
+
+</body>
+</html>

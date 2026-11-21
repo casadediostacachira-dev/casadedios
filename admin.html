@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Iglesia Tacachira</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
+        .admin-header {
+            background: linear-gradient(135deg, #14141c, #1c1c28);
+            padding: 20px 30px; display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 2px solid rgba(212, 175, 55, 0.4); flex-wrap: wrap; gap: 15px;
+        }
+        .admin-header h1 { color: #d4af37; font-size: 1.4rem; letter-spacing: 1px; }
+        .header-btn {
+            display: inline-flex; align-items: center; gap: 8px; color: #e0e0e0; text-decoration: none;
+            font-size: 0.85rem; padding: 8px 16px; border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 30px; transition: all 0.3s;
+        }
+        .header-btn:hover { background: rgba(212, 175, 55, 0.1); border-color: #d4af37; color: #d4af37; }
+        .tabs {
+            display: flex; gap: 5px; padding: 20px 30px 0; background: #0f0f16;
+            flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .tab {
+            padding: 12px 24px; background: transparent; border: none; color: #888;
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+            cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s;
+        }
+        .tab:hover { color: #d4af37; }
+        .tab.active { color: #d4af37; border-bottom-color: #d4af37; }
+        .content { padding: 30px; max-width: 1400px; margin: 0 auto; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; flex-wrap: wrap; gap: 15px;
+        }
+        .panel-header h2 { color: #fff; font-size: 1.4rem; }
+        .panel-header p { color: #888; font-size: 0.85rem; margin-top: 5px; }
+        .add-btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+            background: linear-gradient(135deg, #d4af37, #b8942e); color: #1a1a1a; border: none;
+            border-radius: 30px; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px;
+            text-transform: uppercase; cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
+        }
+        .add-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5); }
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+        #grid-eventos { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+        .item-card {
+            background: linear-gradient(145deg, #1a1a24, #15151d);
+            border: 1px solid rgba(212, 175, 55, 0.15); border-radius: 15px; overflow: hidden;
+            transition: all 0.3s;
+        }
+        .item-card:hover { border-color: rgba(212, 175, 55, 0.4); }
+        .item-preview {
+            width: 100%; aspect-ratio: 16/9; background: #000; display: flex;
+            align-items: center; justify-content: center; color: #d4af37; font-size: 0.8rem;
+            text-align: center; padding: 15px; overflow: hidden; position: relative;
+        }
+        .item-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .item-preview iframe { width: 100%; height: 100%; border: none; }
+
+        .item-preview.vertical { aspect-ratio: 3 / 4; }
+        .item-preview .img-error {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 8px; color: #d4af37; background: linear-gradient(135deg, #1a1a24, #0f0f16);
+            font-size: 0.8rem;
+        }
+        .item-preview .img-error .icon { font-size: 2.5rem; opacity: 0.5; }
+
+        .item-preview .yt-thumb-admin {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            display: block; cursor: default; background: #000;
+        }
+        .item-preview .yt-thumb-admin img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .item-preview .yt-thumb-admin .yt-fallback-admin {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #d4af37; font-size: 0.8rem; text-align: center; padding: 15px;
+            background: linear-gradient(135deg, #1a1a24, #0f0f16);
+        }
+
+        .item-body { padding: 18px; }
+        .item-body h3 { color: #fff; font-size: 1rem; margin-bottom: 8px; }
+        .item-body .meta { font-size: 0.75rem; color: #d4af37; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+        .item-body p { color: #999; font-size: 0.85rem; margin-bottom: 15px; }
+        .item-actions { display: flex; gap: 10px; }
+        .item-actions button {
+            flex: 1; padding: 8px; border-radius: 8px; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid;
+        }
+        .edit-btn { background: rgba(212, 175, 55, 0.1); color: #d4af37; border-color: rgba(212, 175, 55, 0.3); }
+        .edit-btn:hover { background: rgba(212, 175, 55, 0.2); }
+        .delete-btn { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3); }
+        .delete-btn:hover { background: rgba(255, 77, 77, 0.2); }
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: #666;
+            border: 2px dashed rgba(212, 175, 55, 0.2); border-radius: 15px; grid-column: 1 / -1;
+        }
+        .empty-state p { margin-bottom: 8px; font-size: 1rem; }
+        .empty-state small { font-size: 0.8rem; color: #555; }
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: linear-gradient(145deg, #1a1a24, #12121a); border: 2px solid rgba(212, 175, 55, 0.4);
+            border-radius: 20px; padding: 30px; max-width: 600px; width: 100%;
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+        .modal h3 { color: #d4af37; font-size: 1.3rem; margin-bottom: 20px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; font-size: 0.8rem; color: #d4af37; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px 15px; background: #0f0f16;
+            border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 8px;
+            color: #fff; font-size: 0.9rem; outline: none; transition: border-color 0.3s; font-family: inherit;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: #d4af37; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group small { display: block; color: #666; font-size: 0.75rem; margin-top: 5px; }
+        .form-actions { display: flex; gap: 10px; margin-top: 25px; }
+        .btn-cancel, .btn-save {
+            flex: 1; padding: 12px; border-radius: 10px; font-weight: 700;
+            font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;
+            cursor: pointer; transition: all 0.3s; border: none;
+        }
+        .btn-cancel { background: rgba(150,150,150,0.15); color: #ccc; }
+        .btn-cancel:hover { background: rgba(150,150,150,0.25); }
+        .btn-save { background: linear-gradient(135deg, #d4af37, #b8942e); color: #1a1a1a; }
+        .btn-save:hover { transform: translateY(-2px); }
+        .toast {
+            position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, #d4af37, #b8942e);
+            color: #1a1a1a; padding: 15px 25px; border-radius: 12px; font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(150%);
+            transition: transform 0.4s ease; z-index: 4000; font-size: 0.9rem;
+        }
+        .toast.show { transform: translateY(0); }
+        .toast.error { background: linear-gradient(135deg, #ff4d4d, #cc0000); color: #fff; }
+
+        .radio-control-panel { display: flex; flex-direction: column; gap: 30px; }
+        .radio-mode-card {
+            background: linear-gradient(145deg, #1a1a24, #15151d);
+            border: 2px solid rgba(212, 175, 55, 0.2); border-radius: 20px;
+            padding: 30px; transition: all 0.3s;
+        }
+        .radio-mode-card.active { border-color: #d4af37; box-shadow: 0 0 30px rgba(212, 175, 55, 0.3); }
+        .radio-mode-card h3 { color: #fff; font-size: 1.3rem; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .radio-mode-card p { color: #888; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; }
+        .radio-mode-card .btn-mode {
+            padding: 15px 35px; border-radius: 50px; font-size: 1rem; font-weight: 800;
+            letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+            transition: all 0.3s; border: 2px solid;
+        }
+        .btn-mode-off { background: rgba(150, 150, 150, 0.1); color: #aaa; border-color: rgba(150, 150, 150, 0.4); }
+        .btn-mode-off:hover { background: rgba(150, 150, 150, 0.2); color: #fff; }
+        .btn-mode-live { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.5); }
+        .btn-mode-live:hover { background: rgba(255, 77, 77, 0.2); color: #fff; }
+        .radio-mode-card.active .btn-mode-off { background: linear-gradient(135deg, #888, #666); color: #fff; border-color: #888; }
+        .radio-mode-card.active .btn-mode-live {
+            background: linear-gradient(135deg, #ff4d4d, #cc0000); color: #fff; border-color: #ff4d4d;
+            animation: pulseLive 1.5s infinite;
+        }
+        @keyframes pulseLive { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(255, 77, 77, 0); } }
+        .radio-status-indicator {
+            display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem;
+            font-weight: 700; padding: 6px 16px; border-radius: 20px; margin-top: 15px;
+        }
+        .radio-status-indicator.off { background: rgba(150,150,150,0.15); color: #aaa; }
+        .radio-status-indicator.live { background: rgba(255,77,77,0.15); color: #ff4d4d; }
+        .radio-status-indicator .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .radio-status-indicator.live .dot { animation: pulseDot 1.2s infinite; }
+        @keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .music-links-list { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .music-link-item {
+            display: flex; align-items: center; gap: 15px; background: #0f0f16;
+            padding: 15px; border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.15);
+        }
+        .music-link-item .info { flex: 1; }
+        .music-link-item .info h4 { color: #fff; font-size: 0.9rem; margin-bottom: 3px; }
+        .music-link-item .info small { color: #666; font-size: 0.75rem; word-break: break-all; }
+        .music-link-item .remove-btn {
+            background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border: 1px solid rgba(255, 77, 77, 0.3);
+            padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem;
+            font-weight: 600; transition: all 0.2s;
+        }
+        .music-link-item .remove-btn:hover { background: rgba(255, 77, 77, 0.3); }
+
+        .protection-card {
+            background: linear-gradient(145deg, #1a1a24, #15151d);
+            border: 2px solid rgba(212, 175, 55, 0.2); border-radius: 20px;
+            padding: 30px;
+        }
+        .protection-card.active { border-color: #d4af37; box-shadow: 0 0 30px rgba(212, 175, 55, 0.3); }
+        .protection-card h3 { color: #fff; font-size: 1.3rem; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .protection-card p { color: #888; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; }
+        .toggle-switch {
+            display: inline-flex; align-items: center; gap: 15px; cursor: pointer;
+            padding: 15px 25px; border-radius: 50px; border: 2px solid rgba(212,175,55,0.3);
+            background: rgba(212,175,55,0.05); transition: all 0.3s;
+        }
+        .toggle-switch:hover { background: rgba(212,175,55,0.1); }
+        .toggle-switch input { display: none; }
+        .toggle-slider {
+            width: 50px; height: 28px; background: #333; border-radius: 20px;
+            position: relative; transition: all 0.3s;
+        }
+        .toggle-slider::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 22px; height: 22px; background: #fff; border-radius: 50%;
+            transition: all 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: #d4af37; }
+        .toggle-switch input:checked + .toggle-slider::after { left: 25px; }
+        .toggle-label {
+            font-size: 0.9rem; font-weight: 700; color: #d4af37;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .protection-status {
+            margin-top: 20px; padding: 15px 20px; border-radius: 10px;
+            font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 10px;
+        }
+        .protection-status.on { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid rgba(0,200,100,0.3); }
+        .protection-status.off { background: rgba(255,150,0,0.15); color: #ff9600; border: 1px solid rgba(255,150,0,0.3); }
+        .protection-status .icon { font-size: 1.2rem; }
+
+        @media (max-width: 600px) { .content { padding: 20px 15px; } .modal { padding: 22px; } }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <h1>⚙️ Panel de Administración</h1>
+        <a href="index.html" class="header-btn">← Ver sitio</a>
+    </header>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="predicas">🎤 Prédicas</button>
+        <button class="tab" data-tab="eventos">📅 Eventos</button>
+        <button class="tab" data-tab="testimonios">🎬 Testimonios</button>
+        <button class="tab" data-tab="radio">📻 Radio</button>
+        <button class="tab" data-tab="proteccion">🛡️ Protección</button>
+    </div>
+
+    <div class="content">
+        <div class="tab-panel active" id="panel-predicas">
+            <div class="panel-header">
+                <div><h2>Prédicas</h2><p>Agrega los enlaces de YouTube</p></div>
+                <button class="add-btn" onclick="openForm('predicas')">+ Agregar prédica</button>
+            </div>
+            <div class="items-grid" id="grid-predicas"></div>
+        </div>
+        <div class="tab-panel" id="panel-eventos">
+            <div class="panel-header">
+                <div><h2>Eventos</h2><p>Agrega imágenes verticales desde Google Drive</p></div>
+                <button class="add-btn" onclick="openForm('eventos')">+ Agregar evento</button>
+            </div>
+            <div class="items-grid" id="grid-eventos"></div>
+        </div>
+        <div class="tab-panel" id="panel-testimonios">
+            <div class="panel-header">
+                <div><h2>Testimonios</h2><p>Agrega los enlaces de YouTube</p></div>
+                <button class="add-btn" onclick="openForm('testimonios')">+ Agregar testimonio</button>
+            </div>
+            <div class="items-grid" id="grid-testimonios"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-radio">
+            <div class="panel-header">
+                <div><h2>📻 Control de Radio</h2><p>Cambia entre música en OFF y transmisión en vivo</p></div>
+            </div>
+            <div class="radio-control-panel">
+                <div class="radio-mode-card" id="modeCardOff">
+                    <h3>🎵 Música OFF</h3>
+                    <p>El reproductor mostrará una lista de música que tú proporciones.</p>
+                    <button class="btn-mode btn-mode-off" onclick="setRadioMode('off')">Activar Música OFF</button>
+                    <div class="radio-status-indicator off" id="statusOff"><span class="dot"></span> Modo actual: OFF</div>
+                    <div style="margin-top: 25px;">
+                        <label style="display:block;color:#d4af37;font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Enlaces de música (MP3)</label>
+                        <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+                            <input type="text" id="newMusicTitle" placeholder="Nombre de la canción" style="flex:1;min-width:150px;padding:10px;background:#0f0f16;border:1px solid rgba(212,175,55,0.25);border-radius:8px;color:#fff;">
+                            <input type="text" id="newMusicUrl" placeholder="https://ejemplo.com/cancion.mp3" style="flex:2;min-width:200px;padding:10px;background:#0f0f16;border:1px solid rgba(212,175,55,0.25);border-radius:8px;color:#fff;">
+                            <button onclick="addMusicLink()" style="padding:10px 20px;background:linear-gradient(135deg,#d4af37,#b8942e);border:none;border-radius:8px;font-weight:700;cursor:pointer;">+</button>
+                        </div>
+                        <div class="music-links-list" id="musicLinksList"></div>
+                    </div>
+                </div>
+                <div class="radio-mode-card" id="modeCardLive">
+                    <h3>🔴 EN VIVO</h3>
+                    <p>El reproductor mostrará el embed de Caster.fm.</p>
+                    <button class="btn-mode btn-mode-live" onclick="setRadioMode('live')">Activar EN VIVO</button>
+                    <div class="radio-status-indicator off" id="statusLive"><span class="dot"></span> Modo actual: OFF</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="panel-proteccion">
+            <div class="panel-header">
+                <div><h2>🛡️ Protección del Código</h2><p>Bloquea el clic derecho, F12 y atajos de desarrollador en el index</p></div>
+            </div>
+            <div class="protection-card" id="protectionCard">
+                <h3>🔒 Bloqueo de Herramientas</h3>
+                <p>Cuando está activado, los visitantes no podrán abrir el menú contextual (clic derecho), ni las herramientas de desarrollador (F12, Ctrl+Shift+I, etc.).</p>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="protectionToggle" onchange="toggleProtection(this.checked)">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">Activar Protección</span>
+                </label>
+                <div class="protection-status off" id="protectionStatus">
+                    <span class="icon">⚠️</span> Protección DESACTIVADA
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="formModal">
+        <div class="modal">
+            <h3 id="modalTitle">Agregar</h3>
+            <form id="contentForm" onsubmit="saveItem(event)">
+                <input type="hidden" id="itemIndex">
+                <input type="hidden" id="itemType">
+                <div class="form-group"><label>Título *</label><input type="text" id="itemTitle" required placeholder="Ej: El poder de la fe"></div>
+                <div class="form-group" id="groupVideoUrl"><label>Enlace de YouTube *</label><input type="url" id="itemVideoUrl" placeholder="https://www.youtube.com/watch?v=XXXXXXX"><small>Pega el enlace completo</small></div>
+                <div class="form-group" id="groupImageUrl" style="display:none;">
+                    <label>Enlace de la imagen (Google Drive) *</label>
+                    <input type="url" id="itemImageUrl" placeholder="https://drive.google.com/file/d/XXXXXXX/view">
+                    <small>Comparte la imagen como "Cualquiera con el enlace" (lector). Se mostrará en formato vertical.</small>
+                </div>
+                <div class="form-group"><label>Descripción</label><textarea id="itemDescription" placeholder="Breve descripción..."></textarea></div>
+                <div class="form-group" id="groupDate" style="display:none;"><label>Fecha</label><input type="text" id="itemDate" placeholder="Ej: Domingo 20 Nov"></div>
+                <div class="form-group" id="groupTime" style="display:none;"><label>Hora</label><input type="text" id="itemTime" placeholder="Ej: 10:00 AM"></div>
+                <div class="form-group" id="groupDuration" style="display:none;"><label>Duración</label><input type="text" id="itemDuration" placeholder="Ej: 45 min"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeForm()">Cancelar</button>
+                    <button type="submit" class="btn-save">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlVEJSSziX4MXsUho76UUg-DTCTfTDZ4o",
+            authDomain: "radio-tacachira.firebaseapp.com",
+            databaseURL: "https://radio-tacachira-default-rtdb.firebaseio.com",
+            projectId: "radio-tacachira",
+            storageBucket: "radio-tacachira.firebasestorage.app",
+            messagingSenderId: "329155628232",
+            appId: "1:329155628232:web:775b8e922220d9961de9fd",
+            measurementId: "G-JSGV0KZSRC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const DB_PATH = 'iglesia_contenido';
+        const RADIO_PATH = 'radio_control';
+        const PROTECTION_PATH = 'proteccion';
+
+        function getYouTubeId(url) {
+            if (!url) return '';
+            const patterns = [/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/, /youtube\.com\/shorts\/([^&\n?#]+)/];
+            for (const p of patterns) { const m = url.match(p); if (m) return m[1]; }
+            return '';
+        }
+
+        function getYouTubeThumb(id) {
+            if (!id) return '';
+            return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+        }
+
+        function attachYouTubeFallback(img, videoId) {
+            const chain = [
+                `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+                `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+                `https://img.youtube.com/vi/${videoId}/default.jpg`
+            ];
+            let i = 0;
+            img.addEventListener('error', function onErr() {
+                i++;
+                if (i < chain.length) {
+                    img.src = chain[i];
+                } else {
+                    img.removeEventListener('error', onErr);
+                    img.style.display = 'none';
+                    const fallback = img.parentElement.querySelector('.yt-fallback-admin');
+                    if (fallback) fallback.style.display = 'flex';
+                }
+            });
+        }
+
+        function extractDriveId(url) {
+            if (!url) return '';
+            const patterns = [
+                /drive\.google\.com\/file\/d\/([^\/\?]+)/,
+                /drive\.google\.com\/open\?id=([^&]+)/,
+                /drive\.google\.com\/uc\?(?:export=\w+&)?id=([^&]+)/,
+                /lh3\.googleusercontent\.com\/d\/([^=\?]+)/,
+                /drive\.google\.com\/thumbnail\?id=([^&]+)/,
+                /drive\.google\.com\/file\/d\/([^\/]+)/,
+                /[?&]id=([a-zA-Z0-9_-]{20,})/
+            ];
+            for (const p of patterns) {
+                const m = url.match(p);
+                if (m && m[1]) return m[1];
+            }
+            if (/^[a-zA-Z0-9_-]{20,}$/.test(url)) return url;
+            return '';
+        }
+
+        function getDriveImageUrl(url) {
+            const id = extractDriveId(url);
+            if (!id) return url || '';
+            return `https://lh3.googleusercontent.com/d/${id}=w1200`;
+        }
+
+        function getDriveFallbackUrl(url) {
+            const id = extractDriveId(url);
+            if (!id) return '';
+            return `https://drive.google.com/thumbnail?id=${id}&sz=w1200`;
+        }
+
+        function attachImageFallback(img) {
+            let attempt = 0;
+            const original = img.dataset.original || img.src;
+            const fallback1 = img.dataset.fallback || '';
+            const urls = [original, fallback1].filter(Boolean);
+            const driveId = extractDriveId(original);
+            if (driveId) urls.push(`https://drive.google.com/uc?export=view&id=${driveId}`);
+            img.addEventListener('error', function onErr() {
+                attempt++;
+                if (attempt < urls.length) {
+                    img.src = urls[attempt];
+                } else {
+                    img.removeEventListener('error', onErr);
+                    img.style.display = 'none';
+                    const errDiv = img.parentElement.querySelector('.img-error');
+                    if (errDiv) errDiv.style.display = 'flex';
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        let currentData = { predicas: [], eventos: [], testimonios: [] };
+        let currentMusicLinks = [];
+        let currentRadioMode = 'off';
+
+        function listenToData() {
+            const dataRef = ref(db, DB_PATH);
+            onValue(dataRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                currentData = {
+                    predicas: data.predicas ? Object.values(data.predicas) : [],
+                    eventos: data.eventos ? Object.values(data.eventos) : [],
+                    testimonios: data.testimonios ? Object.values(data.testimonios) : []
+                };
+                currentData._keys = {
+                    predicas: data.predicas ? Object.keys(data.predicas) : [],
+                    eventos: data.eventos ? Object.keys(data.eventos) : [],
+                    testimonios: data.testimonios ? Object.keys(data.testimonios) : []
+                };
+                renderAll();
+            });
+        }
+
+        function listenToRadio() {
+            const radioRef = ref(db, RADIO_PATH);
+            onValue(radioRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                currentRadioMode = data.mode || 'off';
+                currentMusicLinks = data.musicLinks ? Object.values(data.musicLinks) : [];
+                currentMusicLinks._keys = data.musicLinks ? Object.keys(data.musicLinks) : [];
+                updateRadioUI();
+            });
+        }
+
+        function listenToProtection() {
+            const protectionRef = ref(db, PROTECTION_PATH);
+            onValue(protectionRef, (snapshot) => {
+                const config = snapshot.val() || {};
+                updateProtectionUI(config.enabled === true);
+            });
+        }
+
+        function updateProtectionUI(enabled) {
+            const toggle = document.getElementById('protectionToggle');
+            const status = document.getElementById('protectionStatus');
+            const card = document.getElementById('protectionCard');
+            toggle.checked = enabled;
+            if (enabled) {
+                status.className = 'protection-status on';
+                status.innerHTML = '<span class="icon">✅</span> Protección ACTIVADA';
+                card.classList.add('active');
+            } else {
+                status.className = 'protection-status off';
+                status.innerHTML = '<span class="icon">⚠️</span> Protección DESACTIVADA';
+                card.classList.remove('active');
+            }
+        }
+
+        window.toggleProtection = function(enabled) {
+            set(ref(db, `${PROTECTION_PATH}/enabled`), enabled)
+                .then(() => showToast(enabled ? '🔒 Protección ACTIVADA' : '🔓 Protección DESACTIVADA'))
+                .catch(err => showToast('Error: ' + err.message, true));
+        };
+
+        function updateRadioUI() {
+            const cardOff = document.getElementById('modeCardOff');
+            const cardLive = document.getElementById('modeCardLive');
+            const statusOff = document.getElementById('statusOff');
+            const statusLive = document.getElementById('statusLive');
+            if (currentRadioMode === 'live') {
+                cardLive.classList.add('active');
+                cardOff.classList.remove('active');
+                statusLive.className = 'radio-status-indicator live';
+                statusLive.innerHTML = '<span class="dot"></span> Modo actual: EN VIVO';
+                statusOff.className = 'radio-status-indicator off';
+                statusOff.innerHTML = '<span class="dot"></span> Modo actual: OFF';
+            } else {
+                cardOff.classList.add('active');
+                cardLive.classList.remove('active');
+                statusOff.className = 'radio-status-indicator off';
+                statusOff.innerHTML = '<span class="dot"></span> Modo actual: OFF';
+                statusLive.className = 'radio-status-indicator off';
+                statusLive.innerHTML = '<span class="dot"></span> Modo actual: OFF';
+            }
+            renderMusicLinks();
+        }
+
+        function renderMusicLinks() {
+            const list = document.getElementById('musicLinksList');
+            if (!currentMusicLinks || currentMusicLinks.length === 0) {
+                list.innerHTML = '<p style="color:#666;font-size:0.85rem;">No hay canciones agregadas</p>';
+                return;
+            }
+            list.innerHTML = currentMusicLinks.map((link, index) => `
+                <div class="music-link-item">
+                    <div class="info">
+                        <h4>${escapeHtml(link.title || 'Sin título')}</h4>
+                        <small>${escapeHtml(link.url)}</small>
+                    </div>
+                    <button class="remove-btn" onclick="removeMusicLink(${index})">Eliminar</button>
+                </div>
+            `).join('');
+        }
+
+        window.setRadioMode = function(mode) {
+            set(ref(db, `${RADIO_PATH}/mode`), mode)
+                .then(() => showToast('✅ Modo cambiado a: ' + (mode === 'live' ? 'EN VIVO' : 'OFF')))
+                .catch(err => showToast('Error: ' + err.message, true));
+        };
+
+        window.addMusicLink = function() {
+            const title = document.getElementById('newMusicTitle').value.trim();
+            const url = document.getElementById('newMusicUrl').value.trim();
+            if (!title || !url) { showToast('Título y URL son obligatorios', true); return; }
+            push(ref(db, `${RADIO_PATH}/musicLinks`), { title, url })
+                .then(() => {
+                    document.getElementById('newMusicTitle').value = '';
+                    document.getElementById('newMusicUrl').value = '';
+                    showToast('✅ Canción agregada');
+                })
+                .catch(err => showToast('Error: ' + err.message, true));
+        };
+
+        window.removeMusicLink = function(index) {
+            if (!confirm('¿Eliminar esta canción?')) return;
+            const realKey = currentMusicLinks._keys[index];
+            remove(ref(db, `${RADIO_PATH}/musicLinks/${realKey}`))
+                .then(() => showToast('🗑 Canción eliminada'))
+                .catch(err => showToast('Error: ' + err.message, true));
+        };
+
+        function renderAll() {
+            renderGrid('predicas', currentData.predicas);
+            renderGrid('eventos', currentData.eventos);
+            renderGrid('testimonios', currentData.testimonios);
+        }
+
+        function renderGrid(type, items) {
+            const grid = document.getElementById('grid-' + type);
+            if (!items || items.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><p>No hay ${type} todavía</p><small>Haz clic en "Agregar" para crear el primero</small></div>`;
+                return;
+            }
+            grid.innerHTML = items.map((item, index) => {
+                let previewHtml = '', metaHtml = '';
+                if (type === 'eventos') {
+                    const primaryUrl = getDriveImageUrl(item.imageUrl);
+                    const fallbackUrl = getDriveFallbackUrl(item.imageUrl);
+                    previewHtml = primaryUrl
+                        ? `<img src="${primaryUrl}"
+                                 alt="${escapeHtml(item.title)}"
+                                 loading="lazy"
+                                 referrerpolicy="no-referrer"
+                                 data-fallback="${fallbackUrl}"
+                                 data-original="${primaryUrl}">`
+                        : '';
+                    metaHtml = `${escapeHtml(item.date || '')} ${item.time ? '· ' + escapeHtml(item.time) : ''}`;
+                } else {
+                    const ytId = getYouTubeId(item.videoUrl);
+                    if (ytId) {
+                        const thumb = getYouTubeThumb(ytId);
+                        previewHtml = `
+                            <div class="yt-thumb-admin">
+                                <img src="${thumb}" alt="${escapeHtml(item.title)}" loading="lazy"
+                                     referrerpolicy="no-referrer"
+                                     data-yt-id="${ytId}">
+                                <div class="yt-fallback-admin" style="display:none;">
+                                    Miniatura no disponible
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        previewHtml = `<span>🎬 Enlace inválido</span>`;
+                    }
+                    metaHtml = item.duration ? escapeHtml(item.duration) : (type === 'predicas' ? 'Prédica' : 'Testimonio');
+                }
+
+                const previewClass = type === 'eventos' ? 'item-preview vertical' : 'item-preview';
+                const imgErrorDiv = type === 'eventos'
+                    ? `<div class="img-error" style="display:none;"><span class="icon">🖼️</span><span>No se pudo cargar la imagen</span></div>`
+                    : '';
+
+                return `
+                    <div class="item-card">
+                        <div class="${previewClass}">
+                            ${previewHtml}
+                            ${imgErrorDiv}
+                        </div>
+                        <div class="item-body">
+                            <div class="meta">${metaHtml}</div>
+                            <h3>${escapeHtml(item.title)}</h3>
+                            <p>${escapeHtml(item.description || '').substring(0, 100)}${(item.description || '').length > 100 ? '...' : ''}</p>
+                            <div class="item-actions">
+                                <button class="edit-btn" onclick="editItem('${type}', ${index})">✏️ Editar</button>
+                                <button class="delete-btn" onclick="deleteItem('${type}', ${index})">🗑 Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (type === 'eventos') {
+                grid.querySelectorAll('.item-preview.vertical img').forEach(img => {
+                    attachImageFallback(img);
+                });
+            } else {
+                grid.querySelectorAll('.yt-thumb-admin img').forEach(img => {
+                    attachYouTubeFallback(img, img.dataset.ytId);
+                });
+            }
+        }
+
+        window.openForm = function(type, index = null) {
+            document.getElementById('formModal').classList.add('active');
+            document.getElementById('itemType').value = type;
+            document.getElementById('itemIndex').value = index ?? '';
+            const isEvent = type === 'eventos';
+            document.getElementById('groupVideoUrl').style.display = isEvent ? 'none' : 'block';
+            document.getElementById('groupImageUrl').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('groupDate').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('groupTime').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('groupDuration').style.display = isEvent ? 'none' : 'block';
+            const typeNames = { predicas: 'prédica', eventos: 'evento', testimonios: 'testimonio' };
+            if (index !== null) {
+                document.getElementById('modalTitle').textContent = 'Editar ' + typeNames[type];
+                const item = currentData[type][index];
+                document.getElementById('itemTitle').value = item.title || '';
+                document.getElementById('itemDescription').value = item.description || '';
+                document.getElementById('itemVideoUrl').value = item.videoUrl || '';
+                document.getElementById('itemImageUrl').value = item.imageUrl || '';
+                document.getElementById('itemDate').value = item.date || '';
+                document.getElementById('itemTime').value = item.time || '';
+                document.getElementById('itemDuration').value = item.duration || '';
+            } else {
+                document.getElementById('modalTitle').textContent = 'Agregar ' + typeNames[type];
+                document.getElementById('contentForm').reset();
+                document.getElementById('itemIndex').value = '';
+            }
+        };
+
+        window.closeForm = function() {
+            document.getElementById('formModal').classList.remove('active');
+        };
+
+        window.saveItem = function(e) {
+            e.preventDefault();
+            const type = document.getElementById('itemType').value;
+            const index = document.getElementById('itemIndex').value;
+            const item = {
+                title: document.getElementById('itemTitle').value.trim(),
+                description: document.getElementById('itemDescription').value.trim()
+            };
+            if (type === 'eventos') {
+                item.imageUrl = document.getElementById('itemImageUrl').value.trim();
+                item.date = document.getElementById('itemDate').value.trim();
+                item.time = document.getElementById('itemTime').value.trim();
+                if (!item.imageUrl) { showToast('La imagen es obligatoria', true); return; }
+                if (!extractDriveId(item.imageUrl)) {
+                    showToast('Enlace de Google Drive inválido. Asegúrate de compartirlo como "Cualquiera con el enlace".', true);
+                    return;
+                }
+            } else {
+                item.videoUrl = document.getElementById('itemVideoUrl').value.trim();
+                item.duration = document.getElementById('itemDuration').value.trim();
+                if (!getYouTubeId(item.videoUrl)) { showToast('Enlace de YouTube inválido', true); return; }
+            }
+            if (index !== '' && index !== null) {
+                const realKey = currentData._keys[type][parseInt(index)];
+                set(ref(db, `${DB_PATH}/${type}/${realKey}`), item)
+                    .then(() => { showToast('✅ Actualizado'); closeForm(); })
+                    .catch(err => showToast('Error: ' + err.message, true));
+            } else {
+                push(ref(db, `${DB_PATH}/${type}`), item)
+                    .then(() => { showToast('✅ Agregado'); closeForm(); })
+                    .catch(err => showToast('Error: ' + err.message, true));
+            }
+        };
+
+        window.editItem = function(type, index) { openForm(type, index); };
+        window.deleteItem = function(type, index) {
+            if (!confirm('¿Eliminar este elemento?')) return;
+            const realKey = currentData._keys[type][parseInt(index)];
+            remove(ref(db, `${DB_PATH}/${type}/${realKey}`))
+                .then(() => showToast('🗑 Eliminado'))
+                .catch(err => showToast('Error: ' + err.message, true));
+        };
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeForm(); });
+        document.getElementById('formModal').addEventListener('click', e => { if (e.target.id === 'formModal') closeForm(); });
+
+        listenToData();
+        listenToRadio();
+        listenToProtection();
+    </script>
+</body>
+</html>
